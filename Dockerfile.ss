@@ -6,4 +6,4 @@ COPY secrets.cfg secrets.cfg
 RUN pip install flask requests flask_cors pymongo configparser
 ENV PYTHONUNBUFFERED=1
 EXPOSE 5003
-CMD ["python","data_handler.py"]
+CMD ["python","security-service.py"]

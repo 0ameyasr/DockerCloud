@@ -158,7 +158,8 @@
                         </div>
                       </div>
                       <td>
-                        {% if not file.requestAccess %}
+                        {% if not file.requestAccess or session["user"] in file.accessList %}
+                          <!-- Enable the download button if access is not restricted or if the user is in the accessList -->
                           <a href="{{ file.filePath }}" class="btn btn-success action" target="_blank" download>
                             <i class="fa-solid fa-download"></i>
                           </a>
@@ -177,7 +178,7 @@
                             </button>
                           </div>
                         {% endif %}
-                      </td>                      
+                      </td>                     
                       <td>{{ file.username }}</td>
                     </tr>
                     
@@ -337,12 +338,22 @@
                   <th scope="col">#</th>
                   <th scope="col"><i class="fas fa-file-alt"></i> Resource Name</th>
                   <th scope="col"><i class="fas fa-tags"></i> Type</th>
+                  <th scope="col"><i class="fas fa-user"></i> Owner </th>
                   <th scope="col"><i class="fas fa-calendar-alt"></i> Added</th>
                   <th scope="col"><i class="fas fa-link"></i> Access</th>
                 </tr>
               </thead>
               <tbody>
-                <!-- Add resource rows here -->
+                {% for resource in session["resources"]: %}
+                  <tr>
+                    <td scope="col">#{{loop.index}}</td>
+                    <td scope="col"><i class="fas fa-file-alt"></i> {{resource.fileName}}</td>
+                    <td scope="col"><i class="fas fa-tags"></i> {{resource.action}} </td>
+                    <td scope="col"><i class="fas fa-tags"></i> {{resource.username}} </td>
+                    <td scope="col"><i class="fas fa-calendar-alt"></i> {{resource.uploadedAt}}</td>
+                    <td scope="col"><i class="fas fa-link"></i> {{resource.access}}</td>
+                  </tr>
+                {% endfor %}
               </tbody>
             </table>
           </div>

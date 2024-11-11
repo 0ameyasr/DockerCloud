@@ -44,16 +44,29 @@ def home():
                 {"to": session["user"]}
             ]
         }).sort("sent", -1))
-        
+
         for message in messages:
             message["_id"] = str(message["_id"])
             message["sent"] = message["sent"].strftime("%Y-%m-%d %H:%M:%S")
             
         session["messages"] = messages
+
+        resources = files.find({
+            "$or": [
+                {"username": session["user"]},
+                {"accessList": {"$regex": session["user"], "$options": "i"}}
+            ]
+        })
+        session["resources"] = [
+            {
+                **file,
+                "_id": str(file["_id"]),
+            } 
+            for file in resources
+        ]
     else:
         session["messages"] = []
     
-    print(session["messages"])
     return render_template("ui.html")
 
 
@@ -116,6 +129,7 @@ def upload_file():
             "requestAccess": request_access,
             "passkey": passkey,
             "uploadedAt": datetime.datetime.now(),
+            "accessList": [session["user"]]
         }
 
         files.insert_one(file_data)
@@ -212,6 +226,7 @@ def handle_access():
         
     except Exception as error:
         return jsonify({"success": False, "error": str(error)})
+    
 @app.route("/logout")
 def logout():
     session.clear()
