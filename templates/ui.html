@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cloud</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="static/web_icon.png" rel="icon">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css"/>
+  <link rel="stylesheet" href="static/ui.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="static/ui.js"></script>
+</head>
+
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#"><img src="static/web_icon.png" width="50" height="50" draggable="false"></a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            {% if not session["login"]:%}
+            <button type="button" class="btn btn-lg btn-warning" data-bs-toggle="modal" data-bs-target="#loginModal">
+              <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+            {% endif %}
+            {% if session["login"] == True:%}
+            <a type="button" class="btn btn-lg btn-danger" href="/logout">
+              <i class="fas fa-sign-out-alt"></i> {{session["user"]}}
+            </a>
+            {% endif%}
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Modal -->
+  <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="loginModalLabel"><i class="fas fa-user"></i> Login</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="loginForm" action="/login" method="POST">
+            <div class="mb-3">
+              <label for="username" class="form-label">Username</label>
+              <input type="text" class="form-control" name="username" id="username" required>
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Password</label>
+              <input type="password" class="form-control" name="password" id="password" required>
+              <small class="text-muted" id="loginStatus"></small>
+            </div>
+            <button type="submit" class="btn btn-lg btn-success"><i class="fas fa-arrow-right"></i> Continue</button>
+          </form>
+          <hr>
+          <small> We'll create an account for you if you don't have one. You'll have to make sure
+            you visit the site at least once every three months. If you don't, your services will be
+            suspended but you won't lose any data.
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="container content">
+    <div class="row">
+      <!-- Left Side - List Group with Cards -->
+      <div class="col-lg-4 col-md-12">
+        <div class="custom-list-group">
+          <!-- Uploads Card -->
+          <div class="card" data-bs-toggle="modal" data-bs-target="#uploadModal">
+            <div class="card-body">
+              <h5 class="card-title"><i class="fas fa-upload"></i> Uploads</h5>
+              <p class="card-text">Upload your files here.</p>
+            </div>
+          </div>
+          <!-- Resources Card -->
+          <div class="card" data-bs-toggle="modal" data-bs-target="#resourcesModal">
+            <div class="card-body">
+              <h5 class="card-title"><i class="fas fa-box-open"></i> Resources</h5>
+              <p class="card-text">Access resources and manage them.</p>
+            </div>
+          </div>
+          <!-- Messages Card -->
+          <div class="card" data-bs-toggle="modal" data-bs-target="#messagesModal">
+            <div class="card-body">
+              <h5 class="card-title"><i class="fas fa-envelope"></i> Messages</h5>
+              <p class="card-text">Send and manage your messages.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Side - Table -->
+      <div class="col-lg-8 col-md-12">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title"><i class="fas fa-folder-open"></i> Public Resources</h5>
+            <div class="table-responsive">
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col"><i class="fas fa-file"></i> File</th>
+                    <th scope="col"><i class="fas fa-info-circle"></i> Info</th>
+                    <th scope="col"><i class="fas fa-eye"></i> Preview</th>
+                    <th scope="col"><i class="fas fa-cog"></i> Action</th>
+                    <th scope="col"><i class="fas fa-user"></i> By</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for file in session["files"] %}
+                    <tr>
+                      <th scope="row">{{ loop.index }}</th>
+                      <td>{{ file.fileName }}</td>
+                      <td>
+                        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#infoModal{{file.fileName}}">
+                          <i class="fa-brands fa-readme"></i>
+                        </button>
+                      </td>
+                      <!-- Preview Column -->
+                      <td>
+                        <button type="button" class="btn btn-primary preview-btn" data-bs-toggle="modal" data-bs-target="#previewModal{{file.fileName}}" data-file-path="{{ file.filePath }}">
+                          <i class="fa-solid fa-eye"></i> Preview
+                        </button>
+                      </td>
+                      <!-- Action Column -->
+                      <div class="modal fade" id="previewModal{{file.fileName}}" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-xl">
+                          <div class="modal-content">
+                            <div class="modal-header">
+                              <h5 class="modal-title" id="previewModalLabel">
+                                <i class="fas fa-eye"></i> Preview: {{file.fileName}}
+                              </h5>
+                              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body p-0">
+                              <div class="preview-container" style="position: relative; width: 100%; height: 80vh;">
+                                <embed 
+                                  src="{{ file.filePath }}" 
+                                  type="application/pdf"
+                                  width="100%"
+                                  height="100%"
+                                  class="preview-embed"
+                                >
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <td>
+                        {% if not file.requestAccess %}
+                          <a href="{{ file.filePath }}" class="btn btn-success action" target="_blank" download>
+                            <i class="fa-solid fa-download"></i>
+                          </a>
+                        {% else %}
+                          <div class="btn-group" role="group">
+                            <button class="btn btn-secondary action" disabled>
+                              <i class="fa-solid fa-download"></i>
+                            </button>
+                            <button type="button" 
+                                    class="btn btn-primary request-access-btn" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#requestModal{{file.fileName}}"
+                                    data-filename="{{file.fileName}}"
+                                    data-owner="{{file.username}}">
+                              <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                          </div>
+                        {% endif %}
+                      </td>                      
+                      <td>{{ file.username }}</td>
+                    </tr>
+                    
+                    <div class="modal fade" id="requestModal{{file.fileName}}" tabindex="-1" aria-labelledby="requestModalLabel" aria-hidden="true">
+                      <div class="modal-dialog">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h5 class="modal-title" id="requestModalLabel">
+                              <i class="fas fa-paper-plane"></i> Request Access to {{file.fileName}}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                          </div>
+                          <div class="modal-body">
+                            <form class="request-access-form" onsubmit="return handleRequestAccess(event)">
+                              <input type="hidden" name="fileName" value="{{file.fileName}}">
+                              <input type="hidden" name="recipient" value="{{file.username}}">
+                              
+                              <div class="mb-3">
+                                <label for="content" class="form-label">
+                                  <i class="fas fa-comment"></i> Why do you need access?
+                                </label>
+                                <textarea 
+                                  class="form-control" 
+                                  id="content" 
+                                  name="content" 
+                                  rows="4" 
+                                  minlength="20" 
+                                  required
+                                ></textarea>
+                                <small class="text-muted">Minimum 20 characters</small>
+                              </div>
+                              
+                              <div class="alert alert-info" role="alert">
+                                <i class="fas fa-info-circle"></i> Your request will be sent to {{file.username}}
+                              </div>
+                              
+                              <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Send Request
+                              </button>
+                            </form>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- File Info Modal -->
+                    <div class="modal fade" id="infoModal{{file.fileName}}" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+                      <div class="modal-dialog">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h5 class="modal-title" id="infoModalLabel"><i class="fas fa-info-circle"></i> About {{file.fileName}}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                          </div>
+                          <div class="modal-body">
+                            <p>{{ file.info }}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  {% else %}
+                    <tr>
+                      <td colspan="6" class="text-center">No public files available.</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Upload Modal -->
+  <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="uploadModalLabel"><i class="fas fa-cloud-upload-alt"></i> Upload a File</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="uploadForm" method="POST" action="/upload" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label for="fileName" class="form-label"><i class="fas fa-file-alt"></i> File Name</label>
+              <input type="text" class="form-control" name="fileName" id="fileName" maxlength="50" required>
+              <small class="text-muted">Max 50 characters</small>
+            </div>
+
+            <div class="mb-3">
+              <label for="file" class="form-label"><i class="fas fa-upload"></i> Upload File</label>
+              <input type="file" class="form-control" name="file" id="file" required>
+            </div>
+
+            <div class="mb-3">
+              <label for="info" class="form-label"><i class="fas fa-info-circle"></i> Information</label>
+              <textarea class="form-control" id="info" name="info" rows="3" style="resize: vertical; max-height: 100px;" maxlength="256" required></textarea>
+              <small class="text-muted">Max 256 characters</small>
+            </div>
+
+            <fieldset class="mb-3">
+              <legend><i class="fas fa-lock"></i> Access</legend>
+              <div>
+                <input type="radio" id="private" name="access" value="private" checked onchange="togglePasskeyField()">
+                <label for="private">Private</label>
+              </div>  
+              <div>
+                <input type="radio" id="public" name="access" value="public" onchange="togglePasskeyField()">
+                <label for="public">Public</label>
+              </div>
+            </fieldset>
+
+            <div class="mb-3" id="passkeyField" style="display: none;">
+              <label for="passkey" class="form-label"><i class="fas fa-key"></i> Passkey</label>
+              <input type="password" class="form-control" name="passkey" id="passkey">
+            </div>
+
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="requestAccess" name="requestAccess">
+              <label class="form-check-label" for="requestAccess">Require request for access</label>
+            </div>
+
+            <fieldset class="mb-3">
+              <legend><i class="fas fa-cogs"></i> Actions</legend>
+              <div>
+                <input type="radio" id="view" name="action" value="view" checked>
+                <label for="view">View</label>
+              </div>
+              <div>
+                <input type="radio" id="download" name="action" value="download">
+                <label for="download">Download</label>
+              </div>
+            </fieldset>
+
+            <button type="submit" class="btn btn-success"><i class="fas fa-upload"></i> Upload</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Resources Modal (Full-Screen) -->
+  <div class="modal fade" id="resourcesModal" tabindex="-1" aria-labelledby="resourcesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="resourcesModalLabel"><i class="fas fa-box-open"></i> Resources</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body modal-fullscreen-table">
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col"><i class="fas fa-file-alt"></i> Resource Name</th>
+                  <th scope="col"><i class="fas fa-tags"></i> Type</th>
+                  <th scope="col"><i class="fas fa-calendar-alt"></i> Added</th>
+                  <th scope="col"><i class="fas fa-link"></i> Access</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Add resource rows here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="messagesModal" tabindex="-1" aria-labelledby="messagesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="messagesModalLabel">
+            <i class="fas fa-envelope"></i> Messages
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="messages-container mb-4">
+            {% for message in messages %}
+              {% if message.to == session["user"] %}
+                <div class="card mb-3 message-card" data-message-id="{{ message._id }}">
+                  <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>
+                      <i class="fas fa-user"></i> From: {{ message.from }}
+                    </span>
+                    <small class="text-muted">
+                      <i class="fas fa-clock"></i> {{ message.sent }}
+                    </small>
+                  </div>
+                  <div class="card-body">
+                    <h6 class="card-subtitle mb-2">
+                      <i class="fas fa-file"></i> File: {{ message.file }}
+                    </h6>
+                    <p class="card-text">{{ message.reason }}</p>
+                    {% if not message.processed %}
+                      <div class="btn-group">
+                        <button class="btn btn-success btn-sm access-response" 
+                                data-action="grant" 
+                                data-message-id="{{ message._id }}"
+                                data-file="{{ message.file }}"
+                                data-requester="{{ message.from }}">
+                          <i class="fas fa-check"></i> Grant Access
+                        </button>
+                        <button class="btn btn-danger btn-sm access-response" 
+                                data-action="deny" 
+                                data-message-id="{{ message._id }}"
+                                data-file="{{ message.file }}"
+                                data-requester="{{ message.from }}">
+                          <i class="fas fa-times"></i> Deny
+                        </button>
+                      </div>
+                    {% else %}
+                      <div class="alert alert-info">
+                        Request {{ message.status }}
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  {% if not session["login"]: %}
+  <script>
+    document.querySelectorAll(".action").forEach(button => button.disabled = true);
+  </script>
+  {% endif %}
+  
+  <script src="static/ui.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
+
+

@@ -1,0 +1,25 @@
+services:
+  message-service:
+    build:
+      context: .
+      file: Dockerfile.ms
+    networks:
+      - service-net
+
+  file-service:
+    build:
+      context: .
+      file: Dockerfile.fs
+    networks:
+      - service-net
+      
+  security-service:
+    build:
+      context: .
+      file: Dockerfile.ss
+    networks:
+      - service-net
+  
+networks:
+  service-net:
+    driver: bridge
