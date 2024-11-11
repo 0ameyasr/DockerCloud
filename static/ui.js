@@ -1,3 +1,57 @@
+$('#loginForm').submit(function (e) {
+    e.preventDefault();
+    var formData = $(this).serialize();
+    $.ajax({
+        type: "POST",
+        url: "/login",
+        data: formData,
+        dataType: "json",
+        success: function (response) {
+            console.log(response);
+            if (response.success) {
+                $('#loginModal').modal('hide');
+                window.location.href = window.location.href;
+            } else {
+                $('#loginStatus').html(response.error);
+            }
+        },
+        error: function (xhr, status, error) {
+            console.error('AJAX Error: ', status, error);
+            alert('An error occurred. Please try again.');
+        }
+    });
+});
+
+$('#uploadForm').submit(function (e) {
+    e.preventDefault();
+
+    var formData = new FormData(this);
+
+    $.ajax({
+        type: "POST",
+        url: "/upload",
+        data: formData,
+        dataType: "json",
+        contentType: false,
+        processData: false,
+        success: function (response) {
+            console.log(response);
+            if (response.success) {
+                $('#uploadModal').modal('hide');
+                alert("File uploaded successfully!");
+                window.location.reload();
+            } else {
+                $('#uploadStatus').html(response.error);
+            }
+        },
+        error: function (xhr, status, error) {
+            console.error('AJAX Error:', status, error);
+            alert('An error occurred. Please try again.');
+        }
+    });
+});
+
+
 async function loadMessages() {
     try {
       const response = await fetch('/get_messages');
