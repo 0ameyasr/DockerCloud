@@ -1,25 +1,52 @@
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.cl
+    networks:
+      - service-net
+    ports:
+      - "5050:5050"
+    volumes:
+      - uploads:/app/static/uploads
+
   message-service:
     build:
       context: .
-      file: Dockerfile.ms
+      dockerfile: Dockerfile.ms
     networks:
       - service-net
+    ports:
+      - "5002:5002"
+    volumes:
+      - uploads:/app/static/uploads
 
   file-service:
     build:
       context: .
-      file: Dockerfile.fs
+      dockerfile: Dockerfile.fs
     networks:
       - service-net
+    ports:
+      - "5001:5001"
+    volumes:
+      - uploads:/app/static/uploads
       
   security-service:
     build:
       context: .
-      file: Dockerfile.ss
+      dockerfile: Dockerfile.ss
     networks:
       - service-net
+    ports:
+      - "5003:5003"
+    volumes:
+      - uploads:/app/static/uploads
   
 networks:
   service-net:
     driver: bridge
+  
+volumes:
+  uploads:
+    driver: local 

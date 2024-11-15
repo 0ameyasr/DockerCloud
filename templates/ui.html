@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cloud</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="static/web_icon.png" rel="icon">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css"/>
+  <link href="/static/web_icon.png" rel="icon">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css" />
   <link rel="stylesheet" href="static/ui.css">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
   <script src="static/ui.js"></script>
@@ -17,7 +18,8 @@
   <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
       <a class="navbar-brand" href="#"><img src="static/web_icon.png" width="50" height="50" draggable="false"></a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
@@ -112,6 +114,7 @@
                     <th scope="col">#</th>
                     <th scope="col"><i class="fas fa-file"></i> File</th>
                     <th scope="col"><i class="fas fa-info-circle"></i> Info</th>
+                    <th scope="col"><i class="fas fa-info-circle"></i> Access</th>
                     <th scope="col"><i class="fas fa-eye"></i> Preview</th>
                     <th scope="col"><i class="fas fa-cog"></i> Action</th>
                     <th scope="col"><i class="fas fa-user"></i> By</th>
@@ -119,129 +122,128 @@
                 </thead>
                 <tbody>
                   {% for file in session["files"] %}
-                    <tr>
-                      <th scope="row">{{ loop.index }}</th>
-                      <td>{{ file.fileName }}</td>
-                      <td>
-                        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#infoModal{{file.fileName}}">
-                          <i class="fa-brands fa-readme"></i>
-                        </button>
-                      </td>
-                      <!-- Preview Column -->
-                      <td>
-                        <button type="button" class="btn btn-primary preview-btn" data-bs-toggle="modal" data-bs-target="#previewModal{{file.fileName}}" data-file-path="{{ file.filePath }}">
-                          <i class="fa-solid fa-eye"></i> Preview
-                        </button>
-                      </td>
-                      <!-- Action Column -->
-                      <div class="modal fade" id="previewModal{{file.fileName}}" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
-                        <div class="modal-dialog modal-xl">
-                          <div class="modal-content">
-                            <div class="modal-header">
-                              <h5 class="modal-title" id="previewModalLabel">
-                                <i class="fas fa-eye"></i> Preview: {{file.fileName}}
-                              </h5>
-                              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body p-0">
-                              <div class="preview-container" style="position: relative; width: 100%; height: 80vh;">
-                                <embed 
-                                  src="{{ file.filePath }}" 
-                                  type="application/pdf"
-                                  width="100%"
-                                  height="100%"
-                                  class="preview-embed"
-                                >
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <td>
-                        {% if not file.requestAccess or session["user"] in file.accessList %}
-                          <!-- Enable the download button if access is not restricted or if the user is in the accessList -->
-                          <a href="{{ file.filePath }}" class="btn btn-success action" target="_blank" download>
-                            <i class="fa-solid fa-download"></i>
-                          </a>
-                        {% else %}
-                          <div class="btn-group" role="group">
-                            <button class="btn btn-secondary action" disabled>
-                              <i class="fa-solid fa-download"></i>
-                            </button>
-                            <button type="button" 
-                                    class="btn btn-primary request-access-btn" 
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#requestModal{{file.fileName}}"
-                                    data-filename="{{file.fileName}}"
-                                    data-owner="{{file.username}}">
-                              <i class="fa-solid fa-paper-plane"></i>
-                            </button>
-                          </div>
-                        {% endif %}
-                      </td>                     
-                      <td>{{ file.username }}</td>
-                    </tr>
-                    
-                    <div class="modal fade" id="requestModal{{file.fileName}}" tabindex="-1" aria-labelledby="requestModalLabel" aria-hidden="true">
-                      <div class="modal-dialog">
+                  <tr>
+                    <th scope="row">{{ loop.index }}</th>
+                    <td>{{ file.originalFileName }}</td>
+                    <td>
+                      <button type="button" class="btn btn-info" data-bs-toggle="modal"
+                        data-bs-target="#infoModal{{file.fileName}}">
+                        <i class="fa-brands fa-readme"></i>
+                      </button>
+                    </td>
+                    <!-- Preview Column -->
+                    <td>
+                      {% if file.requestAccess == True: %}
+                      <span style="color:red;font-weight:bold;">Restricted</span>
+                      {% elif file.requestAccess == False: %}
+                      <span style="color:green;font-weight:bold;">Open</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <button type="button" class="btn btn-primary preview-btn" data-bs-toggle="modal"
+                        data-bs-target="#previewModal{{file.fileName}}" data-file-path="{{ file.fileUrl }}">
+                        <i class="fa-solid fa-eye"></i> Preview
+                      </button>
+                    </td>
+                    <!-- Action Column -->
+                    <div class="modal fade" id="previewModal{{file.fileName}}" tabindex="-1"
+                      aria-labelledby="previewModalLabel" aria-hidden="true">
+                      <div class="modal-dialog modal-xl">
                         <div class="modal-content">
                           <div class="modal-header">
-                            <h5 class="modal-title" id="requestModalLabel">
-                              <i class="fas fa-paper-plane"></i> Request Access to {{file.fileName}}
+                            <h5 class="modal-title" id="previewModalLabel">
+                              <i class="fas fa-eye"></i> Preview: {{file.originalFileName}}
                             </h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                           </div>
-                          <div class="modal-body">
-                            <form class="request-access-form" onsubmit="return handleRequestAccess(event)">
-                              <input type="hidden" name="fileName" value="{{file.fileName}}">
-                              <input type="hidden" name="recipient" value="{{file.username}}">
-                              
-                              <div class="mb-3">
-                                <label for="content" class="form-label">
-                                  <i class="fas fa-comment"></i> Why do you need access?
-                                </label>
-                                <textarea 
-                                  class="form-control" 
-                                  id="content" 
-                                  name="content" 
-                                  rows="4" 
-                                  minlength="20" 
-                                  required
-                                ></textarea>
-                                <small class="text-muted">Minimum 20 characters</small>
-                              </div>
-                              
-                              <div class="alert alert-info" role="alert">
-                                <i class="fas fa-info-circle"></i> Your request will be sent to {{file.username}}
-                              </div>
-                              
-                              <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-paper-plane"></i> Send Request
-                              </button>
-                            </form>
+                          <div class="modal-body p-0">
+                            <div class="preview-container" style="position: relative; width: 100%; height: 80vh;">
+                              <embed src="{{ file.fileUrl }}" type="application/pdf" width="100%" height="100%"
+                                class="preview-embed">
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
+                    <td>
+                      {% if not file.requestAccess or session["user"] in file.accessList %}
+                      <a href="{{ file.fileUrl }}" class="btn btn-success action" target="_blank" download
+                        title="Download this file">
+                        <i class="fa-solid fa-download"></i>
+                      </a>
+                      {% else %}
+                      <div class="btn-group" role="group">
+                        <button class="btn btn-secondary action" disabled>
+                          <i class="fa-solid fa-download"></i>
+                        </button>
+                        <button type="button" class="btn btn-primary request-access-btn action" data-bs-toggle="modal"
+                          data-bs-target="#requestModal{{file.fileName}}" data-filename="{{file.fileName}}"
+                          data-owner="{{file.username}}" title="Send a request for access">
+                          <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                      </div>
+                      {% endif %}
+                    </td>
+                    <td>{{ file.username }}</td>
+                  </tr>
 
-                    <!-- File Info Modal -->
-                    <div class="modal fade" id="infoModal{{file.fileName}}" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
-                      <div class="modal-dialog">
-                        <div class="modal-content">
-                          <div class="modal-header">
-                            <h5 class="modal-title" id="infoModalLabel"><i class="fas fa-info-circle"></i> About {{file.fileName}}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                          </div>
-                          <div class="modal-body">
-                            <p>{{ file.info }}</p>
-                          </div>
+                  <div class="modal fade" id="requestModal{{file.fileName}}" tabindex="-1"
+                    aria-labelledby="requestModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <h5 class="modal-title" id="requestModalLabel">
+                            <i class="fas fa-paper-plane"></i> Request Access to {{file.originalFileName}}
+                          </h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                          <form class="request-access-form" onsubmit="return handleRequestAccess(event)">
+                            <input type="hidden" name="fileName" value="{{file.fileName}}">
+                            <input type="hidden" name="recipient" value="{{file.username}}">
+
+                            <div class="mb-3">
+                              <label for="content" class="form-label">
+                                <i class="fas fa-comment"></i> Why do you need access?
+                              </label>
+                              <textarea class="form-control" id="content" name="content" rows="4" minlength="20"
+                                required></textarea>
+                              <small class="text-muted">Minimum 20 characters</small>
+                            </div>
+
+                            <div class="alert alert-info" role="alert">
+                              <i class="fas fa-info-circle"></i> Your request will be sent to {{file.username}}
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">
+                              <i class="fas fa-paper-plane"></i> Send Request
+                            </button>
+                          </form>
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  <!-- File Info Modal -->
+                  <div class="modal fade" id="infoModal{{file.fileName}}" tabindex="-1" aria-labelledby="infoModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog">
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <h5 class="modal-title" id="infoModalLabel"><i class="fas fa-info-circle"></i> About
+                            {{file.originalFileName}}</h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                          <p>{{ file.info }}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   {% else %}
-                    <tr>
-                      <td colspan="6" class="text-center">No public files available.</td>
-                    </tr>
+                  <tr>
+                    <td colspan="6" class="text-center">No public files available.</td>
+                  </tr>
                   {% endfor %}
                 </tbody>
               </table>
@@ -276,7 +278,8 @@
 
             <div class="mb-3">
               <label for="info" class="form-label"><i class="fas fa-info-circle"></i> Information</label>
-              <textarea class="form-control" id="info" name="info" rows="3" style="resize: vertical; max-height: 100px;" maxlength="256" required></textarea>
+              <textarea class="form-control" id="info" name="info" rows="3" style="resize: vertical; max-height: 100px;"
+                maxlength="256" required></textarea>
               <small class="text-muted">Max 256 characters</small>
             </div>
 
@@ -285,7 +288,7 @@
               <div>
                 <input type="radio" id="private" name="access" value="private" checked onchange="togglePasskeyField()">
                 <label for="private">Private</label>
-              </div>  
+              </div>
               <div>
                 <input type="radio" id="public" name="access" value="public" onchange="togglePasskeyField()">
                 <label for="public">Public</label>
@@ -331,6 +334,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body modal-fullscreen-table">
+          {% if session["resources"] != []:%}
           <div class="table-responsive">
             <table class="table table-striped">
               <thead>
@@ -341,22 +345,38 @@
                   <th scope="col"><i class="fas fa-user"></i> Owner </th>
                   <th scope="col"><i class="fas fa-calendar-alt"></i> Added</th>
                   <th scope="col"><i class="fas fa-link"></i> Access</th>
+                  <th scope="col"><i class="fas fa-wrench"></i> Action</th>
                 </tr>
               </thead>
               <tbody>
                 {% for resource in session["resources"]: %}
-                  <tr>
-                    <td scope="col">#{{loop.index}}</td>
-                    <td scope="col"><i class="fas fa-file-alt"></i> {{resource.fileName}}</td>
-                    <td scope="col"><i class="fas fa-tags"></i> {{resource.action}} </td>
-                    <td scope="col"><i class="fas fa-tags"></i> {{resource.username}} </td>
-                    <td scope="col"><i class="fas fa-calendar-alt"></i> {{resource.uploadedAt}}</td>
-                    <td scope="col"><i class="fas fa-link"></i> {{resource.access}}</td>
-                  </tr>
+                <tr>
+                  <td scope="col">{{loop.index}}</td>
+                  <td scope="col">{{resource.originalFileName}}</td>
+                  <td scope="col">{{resource.action}} </td>
+                  <td scope="col">{{resource.username}} </td>
+                  <td scope="col">{{resource.uploadedAt}}</td>
+                  <td scope="col">{{resource.access}}</td>
+                  <td scope="col">
+                    {% if resource.username == session["user"] %}
+                        <a href="javascript:void(0);" class="btn btn-sm btn-danger action" 
+                          onclick="deleteFile('{{ resource.fileUrl }}')" title="Delete">
+                            <i class="fa-solid fa-trash"></i>
+                        </a>
+                    {% endif %}
+                    <a href="{{ resource.fileUrl }}" class="btn btn-success btn-sm action" target="_blank" download title="Download this file">
+                      <i class="fa-solid fa-download"></i>
+                    </a>
+                  </td>
+                </tr>
                 {% endfor %}
               </tbody>
             </table>
           </div>
+          {% endif %}
+          {% if session["resources"] == [] or not session["resources"]:%}
+          You have no resources. Please login to see your resources, or upload your files.
+          {% endif %}
         </div>
       </div>
     </div>
@@ -374,46 +394,42 @@
         <div class="modal-body">
           <div class="messages-container mb-4">
             {% for message in messages %}
-              {% if message.to == session["user"] %}
-                <div class="card mb-3 message-card" data-message-id="{{ message._id }}">
-                  <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>
-                      <i class="fas fa-user"></i> From: {{ message.from }}
-                    </span>
-                    <small class="text-muted">
-                      <i class="fas fa-clock"></i> {{ message.sent }}
-                    </small>
-                  </div>
-                  <div class="card-body">
-                    <h6 class="card-subtitle mb-2">
-                      <i class="fas fa-file"></i> File: {{ message.file }}
-                    </h6>
-                    <p class="card-text">{{ message.reason }}</p>
-                    {% if not message.processed %}
-                      <div class="btn-group">
-                        <button class="btn btn-success btn-sm access-response" 
-                                data-action="grant" 
-                                data-message-id="{{ message._id }}"
-                                data-file="{{ message.file }}"
-                                data-requester="{{ message.from }}">
-                          <i class="fas fa-check"></i> Grant Access
-                        </button>
-                        <button class="btn btn-danger btn-sm access-response" 
-                                data-action="deny" 
-                                data-message-id="{{ message._id }}"
-                                data-file="{{ message.file }}"
-                                data-requester="{{ message.from }}">
-                          <i class="fas fa-times"></i> Deny
-                        </button>
-                      </div>
-                    {% else %}
-                      <div class="alert alert-info">
-                        Request {{ message.status }}
-                      </div>
-                    {% endif %}
-                  </div>
+            {% if message.to == session["user"] %}
+            <div class="card mb-3 message-card" data-message-id="{{ message._id }}">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                  <i class="fas fa-user"></i> From: {{ message.from }}
+                </span>
+                <small class="text-muted">
+                  <i class="fas fa-clock"></i> {{ message.sent }}
+                </small>
+              </div>
+              <div class="card-body">
+                <h6 class="card-subtitle mb-2">
+                  <i class="fas fa-file"></i> File: {{ message.file }}
+                </h6>
+                <p class="card-text">{{ message.reason }}</p>
+                {% if not message.processed %}
+                <div class="btn-group">
+                  <button class="btn btn-success btn-sm access-response" data-action="grant"
+                    data-message-id="{{ message._id }}" data-file="{{ message.file }}"
+                    data-requester="{{ message.from }}">
+                    <i class="fas fa-check"></i> Grant Access
+                  </button>
+                  <button class="btn btn-danger btn-sm access-response" data-action="deny"
+                    data-message-id="{{ message._id }}" data-file="{{ message.file }}"
+                    data-requester="{{ message.from }}">
+                    <i class="fas fa-times"></i> Deny
+                  </button>
                 </div>
-              {% endif %}
+                {% else %}
+                <div class="alert alert-info">
+                  Request {{ message.status }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+            {% endif %}
             {% endfor %}
           </div>
         </div>
@@ -427,11 +443,9 @@
     document.querySelectorAll(".action").forEach(button => button.disabled = true);
   </script>
   {% endif %}
-  
+
   <script src="static/ui.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>
-
-

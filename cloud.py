@@ -1,13 +1,14 @@
-from flask import Flask, render_template, jsonify, request, session, redirect
+from flask import Flask, render_template, jsonify, request, session, redirect, send_from_directory
 from flask_cors import CORS
 from pymongo import MongoClient
-import os, sys
+import os
 import configparser
 import datetime
+import requests
 from bson import ObjectId
 
-
 app = Flask(__name__)
+CORS(app)
 config = configparser.ConfigParser()
 config.read(os.path.dirname(os.path.abspath(__file__))+"/cloud-secrets.cfg")
 
@@ -19,6 +20,22 @@ try:
     print("Connected to MongoDB successfully")
 except Exception as error:
     print(f"Error connecting to MongoDB:\n {error}")
+
+FILE_SERVICE_URL = "http://file-service:5001"
+MESSAGE_SERVICE_URL = "http://message-service:5002"
+SECURITY_SERVICE_URL = "http://security-service:5003"
+UPLOAD_FOLDER = "/app/static/uploads"
+
+@app.route("/uploads/<path:filename>")
+def serve_file(filename):
+    """Proxy route to serve files from the upload directory"""
+    try:
+        response = requests.get(f"{FILE_SERVICE_URL}/uploads/{filename}")
+        if response.status_code == 200:
+            return response.content, 200, {'Content-Type': response.headers['Content-Type']}
+        return jsonify({"error": "File not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/")
@@ -32,24 +49,21 @@ def home():
         {
             **file,
             "_id": str(file["_id"]),
-            "accessList": file.get("accessList", [])
+            "accessList": file.get("accessList", []),
+            "fileUrl": f"/uploads/{os.path.basename(file['filePath'])}" if 'filePath' in file else None
         } 
         for file in public_files
     ]
     
     if session["user"]:
-        messages = list(mongo["cloud"]["messages"].find({
-            "$or": [
-                {"from": session["user"]},
-                {"to": session["user"]}
-            ]
-        }).sort("sent", -1))
-
-        for message in messages:
-            message["_id"] = str(message["_id"])
-            message["sent"] = message["sent"].strftime("%Y-%m-%d %H:%M:%S")
-            
-        session["messages"] = messages
+        response = requests.get(
+            f"{MESSAGE_SERVICE_URL}/get_messages",
+            params={"user": session["user"]}
+        )
+        if response.status_code == 200:
+            session["messages"] = response.json().get("messages", [])
+        else:
+            session["messages"] = []
 
         resources = files.find({
             "$or": [
@@ -61,6 +75,7 @@ def home():
             {
                 **file,
                 "_id": str(file["_id"]),
+                "fileUrl": f"/uploads/{os.path.basename(file['filePath'])}" if 'filePath' in file else None
             } 
             for file in resources
         ]
@@ -69,6 +84,34 @@ def home():
     
     return render_template("ui.html")
 
+@app.route("/upload", methods=["POST"])
+def upload_file():
+    if "user" not in session or not session["user"]:
+        return jsonify({"success": False, "error": "User not logged in."}), 401
+
+    try:
+        files = {
+            'file': (request.files['file'].filename, request.files['file'])
+        }
+        data = {
+            **request.form,
+            'username': session['user']
+        }
+        
+        response = requests.post(
+            f"{FILE_SERVICE_URL}/upload",
+            files=files,
+            data=data
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('success'):
+                result['fileUrl'] = f"/uploads/{os.path.basename(result.get('filePath', ''))}"
+            return jsonify(result), 200
+        return jsonify(response.json()), response.status_code
+    except Exception as error:
+        return jsonify({"success": False, "error": str(error)})
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -91,52 +134,6 @@ def login():
     except Exception as error:
         return jsonify({"success": False, "error": str(error)})
 
-@app.route("/upload", methods=["POST"])
-def upload_file():
-    if "user" not in session or not session["user"]:
-        return jsonify({"success": False, "error": "User not logged in."}), 401
-
-    try:
-        file_name = request.form["fileName"]
-        info = request.form["info"]
-        access = request.form["access"]
-        action = request.form["action"]
-        request_access = request.form.get("requestAccess") == "on"
-        passkey = request.form.get("passkey") if access == "private" else None
-        file = request.files["file"]
-
-        if not file_name or not file:
-            return jsonify({"success": False, "error": "File name and file are required."}), 400
-
-        project_root = os.path.dirname(os.path.abspath(__file__))
-        upload_dir = os.path.join(project_root, "static", "uploads")
-        
-        if not os.path.exists(upload_dir):
-            os.makedirs(upload_dir)
-
-        file_path = os.path.join(upload_dir, file_name)
-        file.save(file_path)
-
-        relative_file_path = f"/static/uploads/{file_name}"
-
-        file_data = {
-            "username": session["user"],
-            "fileName": file_name,
-            "filePath": relative_file_path,
-            "info": info,
-            "access": access,
-            "action": action,
-            "requestAccess": request_access,
-            "passkey": passkey,
-            "uploadedAt": datetime.datetime.now(),
-            "accessList": [session["user"]]
-        }
-
-        files.insert_one(file_data)
-
-        return jsonify({"success": True, "message": "File uploaded successfully."})
-    except Exception as error:
-        return jsonify({"success": False, "error": str(error)})
 
 @app.route("/send_request", methods=["POST"])
 def send_request():
@@ -144,27 +141,17 @@ def send_request():
         return jsonify({"success": False, "error": "User not logged in."}), 401
     
     try:
-        recipient = request.form["recipient"]
-        reason = request.form["content"]
-        file_name = request.form["fileName"]
-        
-        if len(reason) < 20:
-            return jsonify({
-                "success": False, 
-                "error": "Reason must be at least 20 characters long."
-            }), 400
-        
-        message_data = {
-            "from": session["user"],
-            "to": recipient,
-            "reason": reason,
-            "file": file_name,
-            "sent": datetime.datetime.now()
+        data = {
+            **request.form,
+            'username': session['user']
         }
         
-        mongo["cloud"]["messages"].insert_one(message_data)
+        response = requests.post(
+            f"{MESSAGE_SERVICE_URL}/send_request",
+            data=data
+        )
         
-        return jsonify({"success": True, "message": "Request sent successfully."})
+        return jsonify(response.json()), response.status_code
     except Exception as error:
         return jsonify({"success": False, "error": str(error)})
 
@@ -174,18 +161,12 @@ def get_messages():
         return jsonify({"success": False, "error": "User not logged in."}), 401
     
     try:
-        messages = list(mongo["cloud"]["messages"].find({
-            "$or": [
-                {"from": session["user"]},
-                {"to": session["user"]}
-            ]
-        }).sort("sent", -1))  
+        response = requests.get(
+            f"{MESSAGE_SERVICE_URL}/get_messages",
+            params={"user": session["user"]}
+        )
         
-        for message in messages:
-            message["_id"] = str(message["_id"])
-            message["sent"] = message["sent"].strftime("%Y-%m-%d %H:%M:%S")
-            
-        return jsonify({"success": True, "messages": messages})
+        return jsonify(response.json()), response.status_code
     except Exception as error:
         return jsonify({"success": False, "error": str(error)})
 
@@ -195,42 +176,56 @@ def handle_access():
         return jsonify({"success": False, "error": "User not logged in."}), 401
     
     try:
-        data = request.json
-        message_id = data.get("messageId")
-        action = data.get("action")
-        file_name = data.get("file")
-        requester = data.get("requester")
-        
-        mongo["cloud"]["messages"].update_one(
-            {"_id": ObjectId(message_id)},
-            {
-                "$set": {
-                    "processed": True,
-                    "status": "granted" if action == "grant" else "denied"
-                }
-            }
+        response = requests.post(
+            f"{SECURITY_SERVICE_URL}/handle_access",
+            json=request.json
         )
         
-        if action == "grant":
-            mongo["cloud"]["files"].update_one(
-                {"fileName": file_name},
-                {
-                    "$addToSet": {"accessList": requester}
-                }
-            )
-        
-        return jsonify({
-            "success": True,
-            "message": f"Access {action}ed successfully"
-        })
-        
+        return jsonify(response.json()), response.status_code
     except Exception as error:
         return jsonify({"success": False, "error": str(error)})
     
+@app.route("/delete_file", methods=["POST"])
+def delete_file():
+    if "user" not in session or not session["user"]:
+        return jsonify({"success": False, "error": "User not logged in."}), 401
+    
+    try:
+        file_path = request.json.get("filePath")
+        if not file_path:
+            return jsonify({"success": False, "error": "File path is required."}), 400
+
+        response = requests.post(
+            f"{FILE_SERVICE_URL}/delete",
+            json={"filePath": file_path}
+        )
+
+        return jsonify(response.json()), response.status_code
+
+    except Exception as error:
+        return jsonify({"success": False, "error": str(error)})
+
+
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/")
 
+@app.route("/debug/files")
+def debug_files():
+    """Debug route to check file paths and URLs"""
+    try:
+        all_files = files.find({})
+        debug_info = [{
+            "id": str(f["_id"]),
+            "originalFileName": f.get("originalFileName"),
+            "storedPath": f.get("filePath"),
+            "fileUrl": f"/uploads/{os.path.basename(f['filePath'])}" if 'filePath' in f else None,
+            "access": f.get("access")
+        } for f in all_files]
+        return jsonify({"files": debug_info})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 if __name__ == "__main__":
-    app.run(port=5050, debug=True)
+    app.run(host="0.0.0.0",port=5050, debug=True)

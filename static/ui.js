@@ -227,3 +227,26 @@ async function loadMessages() {
       form.onsubmit = handleRequestAccess;
     });
   });
+
+  function deleteFile(filePath) {
+    fetch("/delete_file", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ filePath: filePath })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert("File deleted successfully.");
+            location.reload(); 
+        } else {
+            alert("Error deleting file: " + data.error);
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        alert("Error deleting file.");
+    });
+}
