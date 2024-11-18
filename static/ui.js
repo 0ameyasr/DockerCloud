@@ -77,7 +77,7 @@ async function loadMessages() {
             </div>
             <div class="card-body">
               <h6 class="card-subtitle mb-2">
-                <i class="fas fa-file"></i> File: ${message.file}
+                <i class="fas fa-file"></i> File: ${message.filename}
               </h6>
               <p class="card-text">${message.reason}</p>
               ${renderMessageActions(message)}

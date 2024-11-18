@@ -200,6 +200,7 @@
                         <div class="modal-body">
                           <form class="request-access-form" onsubmit="return handleRequestAccess(event)">
                             <input type="hidden" name="fileName" value="{{file.fileName}}">
+                            <input type="hidden" name="originalName" value="{{file.originalFileName}}">
                             <input type="hidden" name="recipient" value="{{file.username}}">
 
                             <div class="mb-3">
@@ -406,7 +407,7 @@
               </div>
               <div class="card-body">
                 <h6 class="card-subtitle mb-2">
-                  <i class="fas fa-file"></i> File: {{ message.file }}
+                  <i class="fas fa-file"></i>
                 </h6>
                 <p class="card-text">{{ message.reason }}</p>
                 {% if not message.processed %}

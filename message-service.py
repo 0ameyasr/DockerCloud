@@ -37,6 +37,7 @@ def send_request():
             "to": recipient,
             "reason": reason,
             "file": file_name,
+            "filename": request.form["originalName"],
             "sent": datetime.datetime.now()
         }
         
